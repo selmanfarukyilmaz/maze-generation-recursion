@@ -83,7 +83,11 @@ def maze_generator(maze_x: int, maze_y: int):
 
     random_exit = random.randrange(1, len(maze) - 1)
     maze[random_exit] = change(maze[random_exit], EXIT, len(maze[0]) - 1)
-    return random_exit
+
+    random_start = random.randrange(1, maze_y * 2, 2)
+    maze[random_start] = change(maze[random_start], "s", 0)
+
+    return random_exit, random_start
 
 
 def maze_digger(line: int, letter: int):
@@ -142,15 +146,14 @@ def maze_cleaning(clean_char):
                 maze[i] = change(maze[i], ROAD, ii)
 
 
-
-
-
 def find_road(line: int, letter: int):
+    maze[line] = change(maze[line], ".", letter)
     while True:
 
         empty_neighbours = []
 
         maze_printer(int(len(maze) / 2))
+
         print(line, letter, "NEW_STEP---------------------")
         if is_exit(line, letter):
             print("*****FINISH*****")
@@ -159,21 +162,24 @@ def find_road(line: int, letter: int):
 
         if is_any_empty(maze, line, letter, empty_neighbours, ROAD, 1, edge_index_right_down=2, edge_index_left_up=1):
 
+            random_choose = random.randrange(0, len(empty_neighbours))
+            chosen_neighbour = empty_neighbours[random_choose]
+
             Stack.append((line, letter))
 
-            if empty_neighbours[0] == "right":
+            if chosen_neighbour == "right":
                 maze[line] = change(maze[line], STEP, letter + 1)
                 letter = letter + 1
 
-            if empty_neighbours[0] == "left":
+            if chosen_neighbour == "left":
                 maze[line] = change(maze[line], STEP, letter - 1)
                 letter = letter - 1
 
-            if empty_neighbours[0] == "up":
+            if chosen_neighbour == "up":
                 maze[line - 1] = change(maze[line - 1], STEP, letter)
                 line = line - 1
 
-            if empty_neighbours[0] == "down":
+            if chosen_neighbour == "down":
                 maze[line + 1] = change(maze[line + 1], STEP, letter)
                 line = line + 1
 
@@ -205,15 +211,16 @@ def is_exit(line: int, letter: int):
     else:
         return False
 
+
 def start(len_maze: int, maze_height: int):
-    random_exit = maze_generator(len_maze, maze_height)
+    random_exit, random_start = maze_generator(len_maze, maze_height)
     maze_digger(1, 1)
 
-    maze[random_exit] = change(maze[random_exit], ROAD, len(maze[0]) - 2)
+    maze[random_exit] = change(maze[random_exit], ROAD, len(maze[0]) - 2)  # clean 1 left side of exit
 
     print("************FINISH*************")
     maze_printer(maze_height)
 
     maze_cleaning(VISITED)
 
-    find_road(1, 1)
+    find_road(random_start, 1)
