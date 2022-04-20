@@ -8,52 +8,56 @@ Y_WALL = "|"
 ROAD = " "
 VISITED = "*"
 UNVISITED = "#"
+EXIT = "e"
+STEP = "."
 
 
-def is_up_cell_empty(labyrinth, line: int, letter: int, search_char: str) -> bool:
-    if line > 1:  # üstü tara
-        if labyrinth[line - 2][letter] == search_char:
+def is_up_cell_empty(labyrinth, line: int, letter: int, search_char: str, search_index: int, edge_index: int) -> bool:
+    if line > edge_index:  # üstü tara #1 #0
+        if labyrinth[line - search_index][letter] == search_char:  # -2
 
             return True
         else:
             return False
 
 
-def is_down_cell_empty(labyrinth, line: int, letter: int, search_char: str) -> bool:
-    if line < len(labyrinth) - 2:  # altı tara
-        if labyrinth[line + 2][letter] == search_char:
+def is_down_cell_empty(labyrinth, line: int, letter: int, search_char: str, search_index: int, edge_index: int) -> bool:
+    if line < len(labyrinth) - edge_index:  # altı tara #-2 #0
+        if labyrinth[line + search_index][letter] == search_char:  # +2
             return True
         else:
             return False
 
 
-def is_left_cell_empty(labyrinth, line: int, letter: int, search_char: str) -> bool:
-    if letter > 1:  # solu tara
-        if labyrinth[line][letter - 2] == search_char:
+def is_left_cell_empty(labyrinth, line: int, letter: int, search_char: str, search_index: int, edge_index: int) -> bool:
+    if letter > edge_index:  # solu tara #1 #0
+        if labyrinth[line][letter - search_index] == search_char:  # -2
             return True
         else:
             return False
 
 
-def is_right_cell_empty(labyrinth, line: int, letter: int, search_char: str) -> bool:
-    if letter < len(labyrinth[0]) - 2:  # sağı tara
-        if labyrinth[line][letter + 2] == search_char:
+def is_right_cell_empty(labyrinth, line: int, letter: int, search_char: str, search_index: int,
+                        edge_index: int) -> bool:
+    if letter < len(labyrinth[0]) - edge_index:  # sağı tara #2 #0
+        if labyrinth[line][letter + search_index] == search_char:  # +2
             return True
         else:
             return False
 
 
-def is_any_empty(labyrinth, line: int, letter: int, empty_neighbours: list) -> bool:
-    if is_right_cell_empty(labyrinth, line, letter, UNVISITED):
+def is_any_empty(labyrinth, line: int, letter: int, empty_neighbours: list, search_char: str, search_index: int,
+                 edge_index_right_down: int, edge_index_left_up: int) -> bool:
+    if is_right_cell_empty(labyrinth, line, letter, search_char, search_index, edge_index_right_down):  # 2
         empty_neighbours.append("right")
 
-    if is_left_cell_empty(labyrinth, line, letter, UNVISITED):
+    if is_left_cell_empty(labyrinth, line, letter, search_char, search_index, edge_index_left_up):  # 1
         empty_neighbours.append("left")
 
-    if is_up_cell_empty(labyrinth, line, letter, UNVISITED):
+    if is_up_cell_empty(labyrinth, line, letter, search_char, search_index, edge_index_left_up):
         empty_neighbours.append("up")
 
-    if is_down_cell_empty(labyrinth, line, letter, UNVISITED):
+    if is_down_cell_empty(labyrinth, line, letter, search_char, search_index, edge_index_right_down):
         empty_neighbours.append("down")
 
     if empty_neighbours:
@@ -73,12 +77,13 @@ def maze_printer(maze_height: int):
 
 def maze_generator(maze_x: int, maze_y: int):
     for i in range(maze_y):
-        maze.append(((" " + X_WALL) * maze_x) + ROAD)
+        maze.append(((" " + X_WALL) * maze_x) + " ")
         maze.append((Y_WALL + UNVISITED) * maze_x + Y_WALL)
-    maze.append(((" " + X_WALL) * maze_x) + ROAD)
+    maze.append(((" " + X_WALL) * maze_x) + " ")
 
     random_exit = random.randrange(1, len(maze) - 1)
-    maze[random_exit] = change(maze[random_exit], "e", len(maze[0]) - 1)
+    maze[random_exit] = change(maze[random_exit], EXIT, len(maze[0]) - 1)
+    return random_exit
 
 
 def maze_digger(line: int, letter: int):
@@ -91,7 +96,8 @@ def maze_digger(line: int, letter: int):
 
         empty_neighbours = []
 
-        if is_any_empty(maze, line, letter, empty_neighbours):
+        if is_any_empty(maze, line, letter, empty_neighbours, UNVISITED, 2, edge_index_right_down=2,
+                        edge_index_left_up=1):
 
             random_choose = random.randrange(0, len(empty_neighbours))
             chosen_neighbour = empty_neighbours[random_choose]
@@ -129,16 +135,85 @@ def maze_digger(line: int, letter: int):
         # HİÇBİR ZAMAN GIRMIYOR #TODO
 
 
-def start(len_maze, maze_height):
-    maze_generator(len_maze, maze_height)
+def maze_cleaning(clean_char):
+    for i in range(len(maze)):
+        for ii in range(len(maze[0])):
+            if maze[i][ii] == clean_char:
+                maze[i] = change(maze[i], ROAD, ii)
+
+
+
+
+
+def find_road(line: int, letter: int):
+    while True:
+
+        empty_neighbours = []
+
+        maze_printer(int(len(maze) / 2))
+        print(line, letter, "NEW_STEP---------------------")
+        if is_exit(line, letter):
+            print("*****FINISH*****")
+            maze_printer(int(len(maze) / 2))
+            return
+
+        if is_any_empty(maze, line, letter, empty_neighbours, ROAD, 1, edge_index_right_down=2, edge_index_left_up=1):
+
+            Stack.append((line, letter))
+
+            if empty_neighbours[0] == "right":
+                maze[line] = change(maze[line], STEP, letter + 1)
+                letter = letter + 1
+
+            if empty_neighbours[0] == "left":
+                maze[line] = change(maze[line], STEP, letter - 1)
+                letter = letter - 1
+
+            if empty_neighbours[0] == "up":
+                maze[line - 1] = change(maze[line - 1], STEP, letter)
+                line = line - 1
+
+            if empty_neighbours[0] == "down":
+                maze[line + 1] = change(maze[line + 1], STEP, letter)
+                line = line + 1
+
+        elif is_dead_end(line, letter):
+            maze[line] = change(maze[line], UNVISITED, letter)
+            line, letter = Stack.pop()
+
+        else:
+            raise Exception("Stack Empty Error")
+
+
+def is_dead_end(line: int, letter: int):
+    empty_neighbours = []
+    if not is_any_empty(maze, line, letter, empty_neighbours, ROAD, search_index=1, edge_index_right_down=2,
+                        edge_index_left_up=2):
+        return True
+    else:
+        return False
+
+
+def is_exit(line: int, letter: int):
+    empty_neighbours = []
+
+    if is_any_empty(maze, line, letter, empty_neighbours, EXIT, 1, edge_index_right_down=0, edge_index_left_up=0):
+
+        maze_cleaning(UNVISITED)
+        return True
+
+    else:
+        return False
+
+def start(len_maze: int, maze_height: int):
+    random_exit = maze_generator(len_maze, maze_height)
     maze_digger(1, 1)
+
+    maze[random_exit] = change(maze[random_exit], ROAD, len(maze[0]) - 2)
+
     print("************FINISH*************")
     maze_printer(maze_height)
 
-    for i in range(len(maze)):
-        for ii in range(len(maze[0])):
-            if maze[i][ii] == "*":
-                maze[i] = change(maze[i], " ", ii)
+    maze_cleaning(VISITED)
 
-    print("edit")
-    maze_printer(maze_height)
+    find_road(1, 1)
